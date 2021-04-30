@@ -93,8 +93,7 @@ listening()
   		line=$((line+1)) 
   		echo "$line"
   	done
-  	rm currentPlayList.txt
-  	rm song.txt
+  	rm currentPlayList.txt | rm song.txt
 	#mpg123 $line
 }
 
@@ -106,6 +105,8 @@ rename()
 	while IFS= read -r line; do 
 		array+=("$line"); 
 	done < songs.txt
+	changed=0
+	> renamedsongs.txt
 	for song in "${array[@]}"
 	do
 		artist=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$song)
@@ -124,12 +125,17 @@ rename()
 		fi
 		newName=$(echo $newName | sed 's/bpm//g' | tr -d '0123456789' | sed 's/ \{1,\}/ /g' | tr -d ' ')
 		newName+=".mp3"
+		echo
 		if [[ "$song" != "$newName" ]]
 		then
+			echo "$song -> $newName" >> renamedsongs.txt
 			mv $DIR$song $DIR$newName
+			changed=$((changed+1))
 		fi
 	done
-	rm songs.txt
+	echo "Title changed for $changed songs." >> renamedsongs.txt
+	cat renamedsongs.txt | zenity --text-info --title "Count of changed titles" --height 400 --width 200
+	rm songs.txt | rm renamedsongs.txt
 }
 
 DIR="/home/"$(id -un)"/MUSIC/"
