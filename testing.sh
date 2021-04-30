@@ -34,12 +34,13 @@ creating_playlist()
 }
 
 listening()
-{		
-	creating_playlist
-	
+{
 	line=1
 	if [[ -z $(grep '[^[:space:]]' currentPlayList.txt) ]] # jezeli pusty, nic nie wybralam
-	then
+	then	
+		echo "You didn't choose any song to play" >> currentPlayList.txt
+		cat currentPlayList.txt | zenity --text-info --title "___" --height 150 --width 150
+		rm currentPlayList
 		return
 	fi
 	while [ 0 ]; do
@@ -91,9 +92,29 @@ listening()
   	rm song.txt
 }
 
+selecting()
+{		
+	creating_playlist
+	listening
+}
+
+random() 
+{
+	find $DIR | grep "\.mp3" | sed "s#.*/##" > songs.txt
+	sort -R songs.txt > currentPlayList.txt
+	listening
+	rm songs.txt
+}
+
+lastModified()
+{
+	ls $DIR -Art | tail -n 10 > currentPlayList.txt
+	listening
+}
+
+
 rename() 
 {
-	#mv $song $newName
 	find $DIR | grep "\.mp3" | sed "s#.*/##" > songs.txt
 	declare -a array
 	while IFS= read -r line; do 
@@ -137,10 +158,10 @@ DIR="/home/"$(id -un)"/MUSIC/"
 NAME=$(zenity --entry --title "_____" --text "Hello! Welcome to my new app! What is your name?" --height 350 --width 400)
 
 while [ "$choose" != 5 ]; do
-		choose1="1. Listen to music "
-		choose2="2. Rename filenames properly "
-		choose3="3. "
-		choose4="4. "
+		choose1="1. Select music "
+		choose2="2. Random music playback "
+		choose3="3. Listen recently added "
+		choose4="4. Rename filenames properly "
 		choose5="5. End"
 
 	MENU=("$choose1" "$choose2" "$choose3" "$choose4" "$choose5")
@@ -148,10 +169,10 @@ while [ "$choose" != 5 ]; do
 
 	case "$choose" in
 
-		$choose1) listening;;
-		$choose2) rename;;
-		$choose3) ;;
-		$choose4) ;;
+		$choose1) selecting;;
+		$choose2) random;;
+		$choose3) lastModified;;
+		$choose4) rename;;
 		$choose5) choose=5;;
 	
 	esac
