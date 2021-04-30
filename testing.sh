@@ -29,6 +29,7 @@ creating_playlist()
 		count=$((count-1))	
 	done
 	cat tmp1 >> currentPlayList.txt
+	rm tmp
 	rm tmp1
 }
 
@@ -42,7 +43,7 @@ listening()
 	then
 		return
 	fi
-	while [ $rc -eq 1 ]; do
+	while [ 0 ]; do
 		
 		echo "$line"
 		song=$(head -n $line currentPlayList.txt | tail -n +$line)
@@ -55,65 +56,102 @@ listening()
 		echo "Genre: $genre" >> song.txt
 		echo "Date: $date" >> song.txt
 		
-	  	ans=$(cat song.txt | zenity --text-info "f" --title "Current Song" --cancel-label Quit --extra-button "<" --extra-button pause --extra-button ">") #| mplayer $DIR$song)
+		choose1='>'
+		choose2="<"
+		choose3="pause"
+
+		MENU=("$choose1" "$choose2" "$choose3")
+		
+		ans=$(cat song.txt | zenity --list --column="What do you want to do, $NAME?" "${MENU[@]}") | (mplayer $DIR$song)&
 	  	
+	  	echo "$ans"
 	  	last_line=$(wc -l < currentPlayList.txt)
 	  	
-  		if [[ "$ans" = ">" ]]
-	  	then
-	  		if [[ "$line" = "$last_line" ]]
-			then
-				line=1
-			else 
-	  			line=$((line+1)) 
-	  		fi
-	  		continue;
-        	elif [[ "$ans" = "<" ]]
+	  	case "$ans" in
+	  		$choose1) 
+	  			echo ">>>>>>>>>>>>>>>>>>>>>>>"
+	  			if [[ "$line" = "$last_line" ]]
+				then
+					line=1
+				else 
+	  				line=$((line+1)) 
+	  			fi
+	  			continue;;
+	  		$choose2) 
+	  			if [[ "$line" = "1" ]]
+				then 
+					line="$last_line"
+				else
+	        			line=$((line-1)) 
+	        		fi
+        			continue;;
+	  	esac	
+	  	if [[ "$ans" != 0 ]]
         	then
-        		if [[ "$line" = "1" ]]
-			then 
-				line=$(wc -l < currentPlayList.txt)
-			else
-        			line=$((line-1)) 
-        		fi
-        		continue;		
-        	elif [[ "$ans" = "Quit" ]]
-        	then
-        		echo "exit sukaaaaaaa" 
-  		fi	
+        		exit
+  		fi
   		line=$((line+1)) 
+  		echo "$line"
   	done
+  	rm currentPlayList.txt
+  	rm song.txt
 	#mpg123 $line
+}
+
+rename() 
+{
+	#mv $song $newName
+	find $DIR | grep "\.mp3" | sed "s#.*/##" > songs.txt
+	declare -a array
+	while IFS= read -r line; do 
+		array+=("$line"); 
+	done < songs.txt
+	for song in "${array[@]}"
+	do
+		artist=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$song)
+		title=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 $DIR$song)
+		newName=""
+		if [[ $artist ]]
+		then
+			newName+="$artist"
+			if [[ $title ]]
+			then 	
+				newName+="-"
+				newName+="$title"
+			fi
+		else
+			newName+="$title"
+		fi
+		newName=$(echo $newName | sed 's/bpm//g' | tr -d '0123456789' | sed 's/ \{1,\}/ /g' | tr -d ' ')
+		newName+=".mp3"
+		if [[ "$song" != "$newName" ]]
+		then
+			mv $DIR$song $DIR$newName
+		fi
+	done
+	rm songs.txt
 }
 
 DIR="/home/"$(id -un)"/MUSIC/"
 NAME=$(zenity --entry --title "_____" --text "Hello! Welcome to my new app! What is your name?" --height 350 --width 400)
 
-while [ "$choose" != 9 ]; do
-		choose1="1. Listen music: "
-		choose2="2. Catalog: $DIRECTORY "
-		choose3="3. Check where you can find this file:"
-		choose4="4. Content of file: "
-		choose5="5. Does string exist in file: "
-		choose6="6. Last modification time: " 
-		choose7="7. Size of file/catolog: "
-		choose8="8. Owner of file: "
-		choose9="9. End" 
+while [ "$choose" != 5 ]; do
+		choose1="1. Listen to music "
+		choose2="2. Rename filenames properly "
+		choose3="3. "
+		choose4="4. "
+		choose5="5. End"
 
-	MENU=("$choose1" "$choose2" "$choose3" "$choose4" "$choose5" "$choose6" "$choose7" "$choose8" "$choose9")
+	MENU=("$choose1" "$choose2" "$choose3" "$choose4" "$choose5")
 	choose=$(zenity --list --column="What do you want to do, $NAME?" "${MENU[@]}" --height 400 --width 350)
 
 	case "$choose" in
 
 		$choose1) listening;;
-		$choose2) ;;
+		$choose2) rename;;
 		$choose3) ;;
 		$choose4) ;;
-		$choose5) ;;
-		$choose6) ;;
-		$choose7) ;;
-		$choose8) ;;
-		$choose9) choose=9;;
+		$choose5) choose=5;;
 	
 	esac
 
