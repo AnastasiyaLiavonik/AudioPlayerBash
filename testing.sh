@@ -37,7 +37,6 @@ listening()
 {		
 	creating_playlist
 	
-	rc=1 # OK button return code =0 , all others =1
 	line=1
 	if [[ -z $(grep '[^[:space:]]' currentPlayList.txt) ]] # jezeli pusty, nic nie wybralam
 	then
@@ -45,7 +44,6 @@ listening()
 	fi
 	while [ 0 ]; do
 		
-		echo "$line"
 		song=$(head -n $line currentPlayList.txt | tail -n +$line)
 		artist=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$song)
 		title=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 $DIR$song)
@@ -56,20 +54,13 @@ listening()
 		echo "Genre: $genre" >> song.txt
 		echo "Date: $date" >> song.txt
 		
-		choose1='>'
-		choose2="<"
-		choose3="pause"
-
-		MENU=("$choose1" "$choose2" "$choose3")
-		
-		ans=$(cat song.txt | zenity --list --column="What do you want to do, $NAME?" "${MENU[@]}") | (mplayer $DIR$song)&
+		( mpg123 $DIR$song ) &
+ 	  	ans=$(cat song.txt | zenity --text-info --title "Current Song" --extra-button "⏮" --extra-button ⏹️ --extra-button "⏭" --height 200 --width 150)
 	  	
-	  	echo "$ans"
 	  	last_line=$(wc -l < currentPlayList.txt)
-	  	
+	  	killall mpg123
 	  	case "$ans" in
-	  		$choose1) 
-	  			echo ">>>>>>>>>>>>>>>>>>>>>>>"
+	  		"⏭") 
 	  			if [[ "$line" = "$last_line" ]]
 				then
 					line=1
@@ -77,7 +68,7 @@ listening()
 	  				line=$((line+1)) 
 	  			fi
 	  			continue;;
-	  		$choose2) 
+	  		"⏮") 
 	  			if [[ "$line" = "1" ]]
 				then 
 					line="$last_line"
@@ -85,16 +76,19 @@ listening()
 	        			line=$((line-1)) 
 	        		fi
         			continue;;
+        		"⏹️")
+        			continue;;
 	  	esac	
 	  	if [[ "$ans" != 0 ]]
         	then
-        		exit
+        		break
   		fi
   		line=$((line+1)) 
   		echo "$line"
   	done
-  	rm currentPlayList.txt | rm song.txt
-	#mpg123 $line
+  	killall mpg123
+  	rm currentPlayList.txt 
+  	rm song.txt
 }
 
 rename() 
@@ -135,7 +129,8 @@ rename()
 	done
 	echo "Title changed for $changed songs." >> renamedsongs.txt
 	cat renamedsongs.txt | zenity --text-info --title "Count of changed titles" --height 400 --width 200
-	rm songs.txt | rm renamedsongs.txt
+	rm songs.txt 
+	rm renamedsongs.txt
 }
 
 DIR="/home/"$(id -un)"/MUSIC/"
