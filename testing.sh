@@ -42,13 +42,13 @@ killPausedProcess()
 
 listening()
 {
-	line=1
 	if [[ -z $(grep '[^[:space:]]' currentPlayList.txt) ]]; then # jezeli pusty, nic nie wybralam	
 		echo "You didn't choose any song to play" >> currentPlayList.txt
 		cat currentPlayList.txt | zenity --text-info --title "___" --height 150 --width 150
 		rm currentPlayList
 		return
 	fi
+	line=1
 	pause="false"
 	isSongChanged="true"
 	while [ 0 ]; do
@@ -68,7 +68,7 @@ listening()
 			fi
 			pause="false"
 		fi
- 	  	ans=$(cat song.txt | zenity --text-info --title "Current Song" --extra-button "⏮" --extra-button ⏹️ --extra-button "⏸️" --extra-button "⏭" --height 200 --width 150)
+ 	  	ans=$(cat song.txt | zenity --text-info --title "Current Song" --extra-button "⏮" --extra-button ⏹️ --extra-button "⏸️" --extra-button "⏭" --height 200 --width 150 2>/dev/null)
 	  	
 	  	last_line=$(wc -l < currentPlayList.txt)
 	  	case "$ans" in
@@ -84,10 +84,10 @@ listening()
         			isSongChanged="false"
         			continue;;
 	  	esac
-	  	killall mpg123
 	  	isSongChanged="true"
 	  	case "$ans" in
 	  		"⏭") 
+	  			killall mpg123
 	  			if [[ "$line" = "$last_line" ]]; then
 					line=1
 				else 
@@ -96,6 +96,7 @@ listening()
 	  			killPausedProcess
 	  			continue;;
 	  		"⏮") 
+	  			killall mpg123
 	  			if [[ "$line" = "1" ]]; then 
 					line="$last_line"
 				else
@@ -103,7 +104,8 @@ listening()
 	        		fi
 	        		killPausedProcess
 	        		continue;;
-        		"⏹️")  
+        		"⏹️") 
+        			killall mpg123 
         			killPausedProcess
         			continue;;
         	esac
@@ -111,7 +113,6 @@ listening()
         		break
   		fi
   		line=$((line+1)) 
-  		echo "$line"
   	done
   	killall mpg123
   	rm currentPlayList.txt 
