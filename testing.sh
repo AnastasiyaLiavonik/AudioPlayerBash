@@ -64,7 +64,7 @@ listening()
 			echo "Genre: $genre" >> song.txt
 			echo "Date: $date" >> song.txt
 			if [[ "$isSongChanged" == "true" ]]; then
-				( mpg123 $DIR$song ) &
+				( mpg123 -q $DIR$song ) &
 			fi
 			pause="false"
 		fi
