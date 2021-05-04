@@ -21,8 +21,7 @@ creating_playlist()
 		fi
 	done <<< "$ans"
 	> currentPlayList.txt
-	while [ $count != 0 ]
-	do
+	while [ $count != 0 ]; do
 		cut -d "|" tmp1 -f 1 >> currentPlayList.txt
 		sed -i "s/^[^|]*//" tmp1 
 		sed -i "s/^|*//" tmp1
@@ -33,55 +32,82 @@ creating_playlist()
 	rm tmp1
 }
 
+killPausedProcess()
+{
+	if [[ "$pause" == "true" ]]; then
+	  	kill -9 $processNum
+	fi
+        pause="false"
+}
+
 listening()
 {
 	line=1
-	if [[ -z $(grep '[^[:space:]]' currentPlayList.txt) ]] # jezeli pusty, nic nie wybralam
-	then	
+	if [[ -z $(grep '[^[:space:]]' currentPlayList.txt) ]]; then # jezeli pusty, nic nie wybralam	
 		echo "You didn't choose any song to play" >> currentPlayList.txt
 		cat currentPlayList.txt | zenity --text-info --title "___" --height 150 --width 150
 		rm currentPlayList
 		return
 	fi
+	pause="false"
+	isSongChanged="true"
 	while [ 0 ]; do
-		
-		song=$(head -n $line currentPlayList.txt | tail -n +$line)
-		artist=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$song)
-		title=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 $DIR$song)
-		genre=$(ffprobe -loglevel error -show_entries format_tags=genre -of default=noprint_wrappers=1:nokey=1 $DIR$song)
-		date=$(ffprobe -loglevel error -show_entries format_tags=date -of default=noprint_wrappers=1:nokey=1 $DIR$song)
-		echo "Title: $title" > song.txt
-		echo "Artist: $artist" >> song.txt
-		echo "Genre: $genre" >> song.txt
-		echo "Date: $date" >> song.txt
-		
-		( mpg123 $DIR$song ) &
- 	  	ans=$(cat song.txt | zenity --text-info --title "Current Song" --extra-button "⏮" --extra-button ⏹️ --extra-button "⏭" --height 200 --width 150)
+	
+		if [[ "$pause" == "false" ]] || [[ "$isSongChanged" == "true" ]]; then
+			song=$(head -n $line currentPlayList.txt | tail -n +$line)
+			artist=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$song)
+			title=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 $DIR$song)
+			genre=$(ffprobe -loglevel error -show_entries format_tags=genre -of default=noprint_wrappers=1:nokey=1 $DIR$song)
+			date=$(ffprobe -loglevel error -show_entries format_tags=date -of default=noprint_wrappers=1:nokey=1 $DIR$song)
+			echo "Title: $title" > song.txt
+			echo "Artist: $artist" >> song.txt
+			echo "Genre: $genre" >> song.txt
+			echo "Date: $date" >> song.txt
+			if [[ "$isSongChanged" == "true" ]]; then
+				( mpg123 $DIR$song ) &
+			fi
+			pause="false"
+		fi
+ 	  	ans=$(cat song.txt | zenity --text-info --title "Current Song" --extra-button "⏮" --extra-button ⏹️ --extra-button "⏸️" --extra-button "⏭" --height 200 --width 150)
 	  	
 	  	last_line=$(wc -l < currentPlayList.txt)
+	  	case "$ans" in
+	  		"⏸️")
+        			processNum=$(ps -ef | grep mpg123 | head -n 1 | tr -s ' ' | cut -d ' ' -f2)
+        			if [[ "$pause" == "true" ]]; then
+        				kill -CONT $processNum
+        				pause="false"
+        			else 
+        				kill -STOP $processNum
+        				pause="true"
+        			fi
+        			isSongChanged="false"
+        			continue;;
+	  	esac
 	  	killall mpg123
+	  	isSongChanged="true"
 	  	case "$ans" in
 	  		"⏭") 
-	  			if [[ "$line" = "$last_line" ]]
-				then
+	  			if [[ "$line" = "$last_line" ]]; then
 					line=1
 				else 
 	  				line=$((line+1)) 
 	  			fi
+	  			killPausedProcess
 	  			continue;;
 	  		"⏮") 
-	  			if [[ "$line" = "1" ]]
-				then 
+	  			if [[ "$line" = "1" ]]; then 
 					line="$last_line"
 				else
 	        			line=$((line-1)) 
 	        		fi
+	        		killPausedProcess
+	        		continue;;
+        		"⏹️")  
+        			killPausedProcess
         			continue;;
-        		"⏹️")
-        			continue;;
-	  	esac	
-	  	if [[ "$ans" != 0 ]]
-        	then
+        	esac
+	  	if [[ "$ans" != 0 ]]; then
         		break
   		fi
   		line=$((line+1)) 
@@ -127,11 +153,9 @@ rename()
 		artist=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$song)
 		title=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 $DIR$song)
 		newName=""
-		if [[ $artist ]]
-		then
+		if [[ $artist ]]; then
 			newName+="$artist"
-			if [[ $title ]]
-			then 	
+			if [[ $title ]]; then 	
 				newName+="-"
 				newName+="$title"
 			fi
@@ -141,8 +165,7 @@ rename()
 		newName=$(echo $newName | sed 's/bpm//g' | tr -d '0123456789' | sed 's/ \{1,\}/ /g' | tr -d ' ')
 		newName+=".mp3"
 		echo
-		if [[ "$song" != "$newName" ]]
-		then
+		if [[ "$song" != "$newName" ]]; then
 			echo "$song -> $newName" >> renamedsongs.txt
 			mv $DIR$song $DIR$newName
 			changed=$((changed+1))
