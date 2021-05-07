@@ -2,30 +2,30 @@
 
 DIR=""
 STRING=""
-choose=0
+CHOOSE=0
 
 creating_playlist()
 {	
 	find $DIR | grep "\.mp3" | sed "s#.*/##" > tmp
-	declare -a array
+	declare -a ARRAY
 	while IFS= read -r line; do 
-		array+=(FALSE "$line");
+		ARRAY+=(FALSE "$line");
 	done < tmp
-	ans=$(zenity  --list --checklist --width=600 --height=450 --column="choose" --column="songs" "${array[@]}")
-	echo "$ans" > tmp1
-	count=0
-	while read -n 1 char ; do
-	    	if [ "$char" == '|' ]
+	ANS=$(zenity  --list --checklist --width=600 --height=450 --column="choose" --column="songs" "${ARRAY[@]}")
+	echo "$ANS" > tmp1
+	COUNT=0
+	while read -n 1 CHAR ; do
+	    	if [ "$CHAR" == '|' ]
 		then
-			count=$((count+1))
+			COUNT=$((COUNT+1))
 		fi
-	done <<< "$ans"
+	done <<< "$ANS"
 	> currentPlayList.txt
-	while [ $count != 0 ]; do
+	while [ $COUNT != 0 ]; do
 		cut -d "|" tmp1 -f 1 >> currentPlayList.txt
 		sed -i "s/^[^|]*//" tmp1 
 		sed -i "s/^|*//" tmp1
-		count=$((count-1))	
+		COUNT=$((COUNT-1))	
 	done
 	cat tmp1 >> currentPlayList.txt
 	rm tmp
@@ -34,10 +34,10 @@ creating_playlist()
 
 killPausedProcess()
 {
-	if [[ "$pause" == "true" ]]; then
+	if [[ "$PAUSE" == "true" ]]; then
 	  	kill -9 $processNum
 	fi
-        pause="false"
+        PAUSE="false"
 }
 
 listening()
@@ -48,59 +48,59 @@ listening()
 		rm currentPlayList
 		return
 	fi
-	line=1
-	pause="false"
-	isSongChanged="true"
+	LINE=1
+	PAUSE="false"
+	ISSONGCHANGED="true"
 	while [ 0 ]; do
 	
-		if [[ "$pause" == "false" ]] || [[ "$isSongChanged" == "true" ]]; then
-			song=$(head -n $line currentPlayList.txt | tail -n +$line)
-			artist=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$song)
-			title=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 $DIR$song)
-			genre=$(ffprobe -loglevel error -show_entries format_tags=genre -of default=noprint_wrappers=1:nokey=1 $DIR$song)
-			date=$(ffprobe -loglevel error -show_entries format_tags=date -of default=noprint_wrappers=1:nokey=1 $DIR$song)
-			echo "Title: $title" > song.txt
-			echo "Artist: $artist" >> song.txt
-			echo "Genre: $genre" >> song.txt
-			echo "Date: $date" >> song.txt
-			if [[ "$isSongChanged" == "true" ]]; then
-				( mpg123 -q $DIR$song ) &
+		if [[ "$PAUSE" == "false" ]] || [[ "$ISSONGCHANGED" == "true" ]]; then
+			SONG=$(head -n $LINE currentPlayList.txt | tail -n +$LINE)
+			ARTIST=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
+			TITLE=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
+			GENRE=$(ffprobe -loglevel error -show_entries format_tags=genre -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
+			DATE=$(ffprobe -loglevel error -show_entries format_tags=date -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
+			echo "Title: $TITLE" > song.txt
+			echo "Artist: $ARTIST" >> song.txt
+			echo "Genre: $GENRE" >> song.txt
+			echo "Date: $DATE" >> song.txt
+			if [[ "$ISSONGCHANGED" == "true" ]]; then
+				( mpg123 -q $DIR$SONG ) &
 			fi
-			pause="false"
+			PAUSE="false"
 		fi
- 	  	ans=$(cat song.txt | zenity --text-info --title "Current Song" --extra-button "⏮" --extra-button ⏹️ --extra-button "⏸️" --extra-button "⏭" --height 200 --width 150 2>/dev/null)
+ 	  	ANS=$(cat song.txt | zenity --text-info --title "Current Song" --extra-button "⏮" --extra-button ⏹️ --extra-button "⏸️" --extra-button "⏭" --height 200 --width 150 2>/dev/null)
 	  	
-	  	last_line=$(wc -l < currentPlayList.txt)
-	  	case "$ans" in
+	  	LASTLINE=$(wc -l < currentPlayList.txt)
+	  	case "$ANS" in
 	  		"⏸️")
         			processNum=$(ps -ef | grep mpg123 | head -n 1 | tr -s ' ' | cut -d ' ' -f2)
-        			if [[ "$pause" == "true" ]]; then
+        			if [[ "$PAUSE" == "true" ]]; then
         				kill -CONT $processNum
-        				pause="false"
+        				PAUSE="false"
         			else 
         				kill -STOP $processNum
-        				pause="true"
+        				PAUSE="true"
         			fi
-        			isSongChanged="false"
+        			ISSONGCHANGED="false"
         			continue;;
 	  	esac
-	  	isSongChanged="true"
-	  	case "$ans" in
+	  	ISSONGCHANGED="true"
+	  	case "$ANS" in
 	  		"⏭") 
 	  			killall mpg123
-	  			if [[ "$line" = "$last_line" ]]; then
-					line=1
+	  			if [[ "$LINE" = "$LASTLINE" ]]; then
+					LINE=1
 				else 
-	  				line=$((line+1)) 
+	  				LINE=$((LINE+1)) 
 	  			fi
 	  			killPausedProcess
 	  			continue;;
 	  		"⏮") 
 	  			killall mpg123
-	  			if [[ "$line" = "1" ]]; then 
-					line="$last_line"
+	  			if [[ "$LINE" = "1" ]]; then 
+					LINE="$LASTLINE"
 				else
-	        			line=$((line-1)) 
+	        			LINE=$((LINE-1)) 
 	        		fi
 	        		killPausedProcess
 	        		continue;;
@@ -109,10 +109,10 @@ listening()
         			killPausedProcess
         			continue;;
         	esac
-	  	if [[ "$ans" != 0 ]]; then
+	  	if [[ "$ANS" != 0 ]]; then
         		break
   		fi
-  		line=$((line+1)) 
+  		LINE=$((LINE+1)) 
   	done
   	killall mpg123
   	rm currentPlayList.txt 
@@ -143,36 +143,36 @@ lastModified()
 rename() 
 {
 	find $DIR | grep "\.mp3" | sed "s#.*/##" > songs.txt
-	declare -a array
-	while IFS= read -r line; do 
-		array+=("$line"); 
+	declare -a ARRAY
+	while IFS= read -r LINE; do 
+		ARRAY+=("$LINE"); 
 	done < songs.txt
-	changed=0
+	CHANGED=0
 	> renamedsongs.txt
-	for song in "${array[@]}"
+	for SONG in "${ARRAY[@]}"
 	do
-		artist=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$song)
-		title=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 $DIR$song)
-		newName=""
-		if [[ $artist ]]; then
-			newName+="$artist"
-			if [[ $title ]]; then 	
-				newName+="-"
-				newName+="$title"
+		ARTIST=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
+		TITLE=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
+		NEWNAME=""
+		if [[ $ARTIST ]]; then
+			NEWNAME+="$ARTIST"
+			if [[ $TITLE ]]; then 	
+				NEWNAME+="-"
+				NEWNAME+="$TITLE"
 			fi
 		else
-			newName+="$title"
+			NEWNAME+="$TITLE"
 		fi
-		newName=$(echo $newName | sed 's/bpm//g' | tr -d '0123456789' | sed 's/ \{1,\}/ /g' | tr -d ' ')
-		newName+=".mp3"
+		NEWNAME=$(echo $NEWNAME | sed 's/bpm//g' | tr -d '0123456789' | sed 's/ \{1,\}/ /g' | tr -d ' ')
+		NEWNAME+=".mp3"
 		echo
-		if [[ "$song" != "$newName" ]]; then
-			echo "$song -> $newName" >> renamedsongs.txt
-			mv $DIR$song $DIR$newName
-			changed=$((changed+1))
+		if [[ "$SONG" != "$NEWNAME" ]]; then
+			echo "$SONG -> $NEWNAME" >> renamedsongs.txt
+			mv $DIR$SONG $DIR$NEWNAME
+			CHANGED=$((CHANGED+1))
 		fi
 	done
-	echo "Title changed for $changed songs." >> renamedsongs.txt
+	echo "Title changed for $CHANGED songs." >> renamedsongs.txt
 	cat renamedsongs.txt | zenity --text-info --title "Count of changed titles" --height 400 --width 200
 	rm songs.txt 
 	rm renamedsongs.txt
@@ -181,23 +181,23 @@ rename()
 DIR="/home/"$(id -un)"/MUSIC/"
 NAME=$(zenity --entry --title "_____" --text "Hello! Welcome to my new app! What is your name?" --height 350 --width 400)
 
-while [ "$choose" != 5 ]; do
-		choose1="1. Select music "
-		choose2="2. Random music playback "
-		choose3="3. Listen recently added "
-		choose4="4. Rename filenames properly "
-		choose5="5. End"
+while [ "$CHOOSE" != 5 ]; do
+		CHOOSE1="1. Select music "
+		CHOOSE2="2. Random music playback "
+		CHOOSE3="3. Listen recently added "
+		CHOOSE4="4. Rename filenames properly "
+		CHOOSE5="5. End"
 
-	MENU=("$choose1" "$choose2" "$choose3" "$choose4" "$choose5")
-	choose=$(zenity --list --column="What do you want to do, $NAME?" "${MENU[@]}" --height 400 --width 350)
+	MENU=("$CHOOSE1" "$CHOOSE2" "$CHOOSE3" "$CHOOSE4" "$CHOOSE5")
+	CHOOSE=$(zenity --list --column="What do you want to do, $NAME?" "${MENU[@]}" --height 400 --width 350)
 
-	case "$choose" in
+	case "$CHOOSE" in
 
-		$choose1) selecting;;
-		$choose2) random;;
-		$choose3) lastModified;;
-		$choose4) rename;;
-		$choose5) choose=5;;
+		$CHOOSE1) selecting;;
+		$CHOOSE2) random;;
+		$CHOOSE3) lastModified;;
+		$CHOOSE4) rename;;
+		$CHOOSE5) CHOOSE=5;;
 	
 	esac
 
