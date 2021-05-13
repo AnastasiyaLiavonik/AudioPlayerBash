@@ -6,13 +6,13 @@ CHOOSE=0
 
 creating_playlist()
 {	
-	find $DIR | grep "\.mp3" | sed "s#.*/##" > tmp
+	find $DIR | grep "\.mp3" | sed "s#.*/##" > $PWD/.tmp.txt
 	declare -a ARRAY
 	while IFS= read -r line; do 
 		ARRAY+=(FALSE "$line");
-	done < tmp
+	done < $PWD/.tmp.txt
 	ANS=$(zenity  --list --checklist --width=600 --height=450 --column="choose" --column="songs" "${ARRAY[@]}")
-	echo "$ANS" > tmp1
+	echo "$ANS" > $PWD/.tmp.txt
 	COUNT=0
 	while read -n 1 CHAR ; do
 	    	if [ "$CHAR" == '|' ]
@@ -20,32 +20,31 @@ creating_playlist()
 			COUNT=$((COUNT+1))
 		fi
 	done <<< "$ANS"
-	> currentPlayList.txt
+	> $PWD/.currentPlayList.txt
 	while [ $COUNT != 0 ]; do
-		cut -d "|" tmp1 -f 1 >> currentPlayList.txt
-		sed -i "s/^[^|]*//" tmp1 
-		sed -i "s/^|*//" tmp1
+		cut -d "|" $PWD/.tmp.txt -f 1 >> $PWD/.currentPlayList.txt
+		sed -i "s/^[^|]*//" $PWD/.tmp.txt
+		sed -i "s/^|*//" $PWD/.tmp.txt
 		COUNT=$((COUNT-1))	
 	done
-	cat tmp1 >> currentPlayList.txt
-	rm tmp
-	rm tmp1
+	cat $PWD/.tmp.txt >> $PWD/.currentPlayList.txt
+	rm $PWD/.tmp.txt
 }
 
 killPausedProcess()
 {
 	if [[ "$PAUSE" == "true" ]]; then
-	  	kill -9 $processNum
+	  	kill -9 $processNum 2>/dev/null
 	fi
         PAUSE="false"
 }
 
 listening()
 {
-	if [[ -z $(grep '[^[:space:]]' currentPlayList.txt) ]]; then # jezeli pusty, nic nie wybralam	
-		echo "You didn't choose any song to play" >> currentPlayList.txt
-		cat currentPlayList.txt | zenity --text-info --title "___" --height 150 --width 150
-		rm currentPlayList
+	if [[ -z $(grep '[^[:space:]]' $PWD/.currentPlayList.txt) ]]; then # jezeli pusty, nic nie wybralam	
+		echo "You didn't choose any song to play" >> $HOME/Templates/.currentPlayList.txt
+		cat $HOME/Templates/.currentPlayList.txt | zenity --text-info --title "___" --height 150 --width 150
+		rm $HOME/Templates/.currentPlayList.txt
 		return
 	fi
 	LINE=1
@@ -54,23 +53,23 @@ listening()
 	while [ 0 ]; do
 	
 		if [[ "$PAUSE" == "false" ]] || [[ "$ISSONGCHANGED" == "true" ]]; then
-			SONG=$(head -n $LINE currentPlayList.txt | tail -n +$LINE)
+			SONG=$(head -n $LINE $PWD/.currentPlayList.txt | tail -n +$LINE)
 			ARTIST=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
 			TITLE=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
 			GENRE=$(ffprobe -loglevel error -show_entries format_tags=genre -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
 			DATE=$(ffprobe -loglevel error -show_entries format_tags=date -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
-			echo "Title: $TITLE" > song.txt
-			echo "Artist: $ARTIST" >> song.txt
-			echo "Genre: $GENRE" >> song.txt
-			echo "Date: $DATE" >> song.txt
+			echo "Title: $TITLE" > $PWD/.song.txt
+			echo "Artist: $ARTIST" >> $PWD/.song.txt
+			echo "Genre: $GENRE" >> $PWD/.song.txt
+			echo "Date: $DATE" >> $PWD/.song.txt
 			if [[ "$ISSONGCHANGED" == "true" ]]; then
 				( mpg123 -q $DIR$SONG ) &
 			fi
 			PAUSE="false"
 		fi
- 	  	ANS=$(cat song.txt | zenity --text-info --title "Current Song" --extra-button "⏮" --extra-button ⏹️ --extra-button "⏸️" --extra-button "⏭" --height 200 --width 150 2>/dev/null)
+ 	  	ANS=$(cat $PWD/.song.txt | zenity --text-info --title "Current Song" --extra-button "⏮" --extra-button ⏹️ --extra-button "⏸️" --extra-button "⏭" --height 200 --width 150 2>/dev/null)
 	  	
-	  	LASTLINE=$(wc -l < currentPlayList.txt)
+	  	LASTLINE=$(wc -l < $PWD/.currentPlayList.txt)
 	  	case "$ANS" in
 	  		"⏸️")
         			processNum=$(ps -ef | grep mpg123 | head -n 1 | tr -s ' ' | cut -d ' ' -f2)
@@ -115,8 +114,8 @@ listening()
   		LINE=$((LINE+1)) 
   	done
   	killall mpg123
-  	rm currentPlayList.txt 
-  	rm song.txt
+  	rm $PWD/.currentPlayList.txt 
+  	rm $PWD/.song.txt
 }
 
 selecting()
@@ -127,28 +126,28 @@ selecting()
 
 random() 
 {
-	find $DIR | grep "\.mp3" | sed "s#.*/##" > songs.txt
-	sort -R songs.txt > currentPlayList.txt
+	find $DIR | grep "\.mp3" | sed "s#.*/##" > $PWD/.songs.txt
+	sort -R $PWD/.songs.txt > $PWD/.currentPlayList.txt
 	listening
-	rm songs.txt
+	rm $PWD/.songs.txt
 }
 
 lastModified()
 {
-	ls $DIR -Art | tail -n 10 > currentPlayList.txt
+	ls $DIR -Art | tail -n 10 > $PWD/.currentPlayList.txt
 	listening
 }
 
 
 rename() 
 {
-	find $DIR | grep "\.mp3" | sed "s#.*/##" > songs.txt
+	find $DIR | grep "\.mp3" | sed "s#.*/##" > $PWD/.songs.txt
 	declare -a ARRAY
 	while IFS= read -r LINE; do 
 		ARRAY+=("$LINE"); 
-	done < songs.txt
+	done < $PWD/.songs.txt
 	CHANGED=0
-	> renamedsongs.txt
+	> $PWD/.renamedsongs.txt
 	for SONG in "${ARRAY[@]}"
 	do
 		ARTIST=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
@@ -167,18 +166,18 @@ rename()
 		NEWNAME+=".mp3"
 		echo
 		if [[ "$SONG" != "$NEWNAME" ]]; then
-			echo "$SONG -> $NEWNAME" >> renamedsongs.txt
+			echo "$SONG -> $NEWNAME" >> $PWD/.renamedsongs.txt
 			mv $DIR$SONG $DIR$NEWNAME
 			CHANGED=$((CHANGED+1))
 		fi
 	done
-	echo "Title changed for $CHANGED songs." >> renamedsongs.txt
-	cat renamedsongs.txt | zenity --text-info --title "Count of changed titles" --height 400 --width 200
-	rm songs.txt 
-	rm renamedsongs.txt
+	echo "Title changed for $CHANGED songs." >> $PWD/.renamedsongs.txt
+	cat $PWD/.renamedsongs.txt | zenity --text-info --title "Count of changed titles" --height 400 --width 200
+	rm $PWD/.songs.txt 
+	rm $PWD/.renamedsongs.txt
 }
 
-DIR="/home/"$(id -un)"/MUSIC/"
+DIR="$HOME/MUSIC/"
 NAME=$(zenity --entry --title "_____" --text "Hello! Welcome to my new app! What is your name?" --height 350 --width 400)
 
 while [ "$CHOOSE" != 5 ]; do
@@ -202,3 +201,4 @@ while [ "$CHOOSE" != 5 ]; do
 	esac
 
 done
+
