@@ -123,17 +123,11 @@ listening()
 selecting()
 {		
 	creating_playlist
-ANS=$(zenity  --list --checklist --width=600 --height=450 --column="choose" --column="songs" "${ARRAY[@]}")
-        echo "$ANS" > tmp
-        COUNT=0
 	listening
 }
 
 random() 
 {
-ANS=$(zenity  --list --checklist --width=600 --height=450 --column="choose" --column="songs" "${ARRAY[@]}")
-        echo "$ANS" > tmp
-        COUNT=0
 	CURRENTPLAYLIST="/usr/local/bin/currentPlaylist.txt"
 	find $DIR | grep "\.mp3" | sed "s#.*/##" | sort -R > $CURRENTPLAYLIST 
 	listening
@@ -226,4 +220,3 @@ while [ "$CHOOSE" != 5 ]; do
 	esac
 
 done
-
