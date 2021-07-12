@@ -123,11 +123,13 @@ listening()
 selecting()
 {		
 	creating_playlist
+        COUNT=0
 	listening
 }
 
 random() 
 {
+        COUNT=0
 	CURRENTPLAYLIST="/usr/local/bin/currentPlaylist.txt"
 	find $DIR | grep "\.mp3" | sed "s#.*/##" | sort -R > $CURRENTPLAYLIST 
 	listening
@@ -180,10 +182,10 @@ rename()
 	rm $RENAMEDSONGS
 }
 
-DIR="/home/"$(id -un)"/MUSIC/"
+DIR="/home/"$(id -un)"/"
 FILESCRIPTNAME=$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")
 ME=$(stat -c '%U' $FILESCRIPTNAME)
-EMAIL="s187716@student.pg.edu.pl"
+EMAIL=""
 LASTMODIFIED=$( date -r $FILESCRIPTNAME )
 HEADERFILE="/usr/local/bin/header.txt"
 echo "# Author           : $ME ( $EMAIL )" > $HEADERFILE
@@ -196,10 +198,22 @@ echo "# Description      : Skrypt pozwala na sluchanie muzyki. Sa roznego rodzaj
 echo "#" >> $HEADERFILE
 echo "# Licensed under GPL (see /usr/share/common-licenses/GPL for more details">> $HEADERFILE
 echo "# or contact # the Free Software Foundation for a copy)" >> $HEADERFILE
+
+while getopts hv OPT; do
+	case $OPT in
+		h) echo "Option help";;
+		v) echo "Option version";;
+		*) echo "Undefined option";;
+	esac
+done
+
 cat $HEADERFILE | zenity --title "_____" --text-info --height 350 --width 550
 rm $HEADERFILE
+MUSICFILE=$(zenity --entry --title "Path request" --text "Please enter the path to the file with music")
+DIR="${DIR}$MUSICFILE"
 
 while [ "$CHOOSE" != 5 ]; do
+
 		CHOOSE1="1. Select music "
 		CHOOSE2="2. Random music playback "
 		CHOOSE3="3. Listen recently added "
