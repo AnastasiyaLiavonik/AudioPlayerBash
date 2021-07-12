@@ -3,6 +3,8 @@
 DIR=""
 STRING=""
 CHOOSE=0
+FALSE="false"
+TRUE="true"
 
 creating_playlist()
 {	
@@ -34,10 +36,10 @@ creating_playlist()
 
 killPausedProcess()
 {
-	if [[ "$PAUSE" == "true" ]]; then
+	if [[ "$PAUSE" == $TRUE ]]; then
 	  	kill -9 $processNum
 	fi
-        PAUSE="false"
+        PAUSE=$FALSE
 }
 
 listening()
@@ -49,11 +51,11 @@ listening()
 		return
 	fi
 	LINE=1
-	PAUSE="false"
-	ISSONGCHANGED="true"
+	PAUSE=$FALSE
+	ISSONGCHANGED=$TRUE
 	while [ 0 ]; do
 	
-		if [[ "$PAUSE" == "false" ]] || [[ "$ISSONGCHANGED" == "true" ]]; then
+		if [[ "$PAUSE" == $FALSE ]] || [[ "$ISSONGCHANGED" == $TRUE ]]; then
 			SONG=$(head -n $LINE $CURRENTPLAYLIST | tail -n +$LINE)
 			ARTIST=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
 			TITLE=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
@@ -64,10 +66,10 @@ listening()
 			echo "Artist: $ARTIST" >> $PLAYINGSONG
 			echo "Genre: $GENRE" >> $PLAYINGSONG
 			echo "Date: $DATE" >> $PLAYINGSONG
-			if [[ "$ISSONGCHANGED" == "true" ]]; then
+			if [[ "$ISSONGCHANGED" == $TRUE ]]; then
 				( mpg123 -q $DIR$SONG ) &
 			fi
-			PAUSE="false"
+			PAUSE=$FALSE
 		fi
 		ANS=$(cat $PLAYINGSONG | zenity --text-info --title "Current Song" --extra-button "⏮" --extra-button ⏹️ --extra-button "⏸️" --extra-button "⏭" --height 200 --width 120 2>/dev/null)
 	  	
@@ -75,17 +77,17 @@ listening()
 	  	case "$ANS" in
 	  		"⏸️")
         			processNum=$(ps -ef | grep mpg123 | head -n 1 | tr -s ' ' | cut -d ' ' -f2)
-        			if [[ "$PAUSE" == "true" ]]; then
+        			if [[ "$PAUSE" == $TRUE ]]; then
         				kill -CONT $processNum
-        				PAUSE="false"
+        				PAUSE=$FALSE
         			else 
         				kill -STOP $processNum
-        				PAUSE="true"
+        				PAUSE=$TRUE
         			fi
-        			ISSONGCHANGED="false"
+        			ISSONGCHANGED=$FALSE
         			continue;;
 	  	esac
-	  	ISSONGCHANGED="true"
+	  	ISSONGCHANGED=$TRUE
 	  	case "$ANS" in
 	  		"⏭") 
 	  			killall mpg123
