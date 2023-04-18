@@ -13,6 +13,7 @@ creating_playlist()
 	while IFS= read -r line; do 
 		ARRAY+=(FALSE "$line");
 	done < tmp
+	
 	ANS=$(zenity  --list --checklist --width=600 --height=450 --column="choose" --column="songs" "${ARRAY[@]}")
 	echo "$ANS" > tmp
 	COUNT=0
@@ -24,7 +25,7 @@ creating_playlist()
 	done <<< "$ANS"
 	CURRENTPLAYLIST="/usr/local/bin/currentPlayList.txt"
 	touch $CURRENTPLAYLIST
-	while [ $COUNT != 0 ]; do
+	while [ $COUNT -ne 0 ]; do
 		cut -d "|" tmp -f 1 >> $CURRENTPLAYLIST
 		sed -i "s/^[^|]*//" tmp
 		sed -i "s/^|*//" tmp
@@ -57,17 +58,18 @@ listening()
 	
 		if [[ "$PAUSE" == $FALSE ]] || [[ "$ISSONGCHANGED" == $TRUE ]]; then
 			SONG=$(head -n $LINE $CURRENTPLAYLIST | tail -n +$LINE)
-			ARTIST=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
-			TITLE=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
-			GENRE=$(ffprobe -loglevel error -show_entries format_tags=genre -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
-			DATE=$(ffprobe -loglevel error -show_entries format_tags=date -of default=noprint_wrappers=1:nokey=1 $DIR$SONG)
+			ARTIST=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 "$DIR${SONG}")
+			TITLE=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 "$DIR${SONG}")
+			GENRE=$(ffprobe -loglevel error -show_entries format_tags=genre -of default=noprint_wrappers=1:nokey=1 "$DIR${SONG}")
+			DATE=$(ffprobe -loglevel error -show_entries format_tags=date -of default=noprint_wrappers=1:nokey=1 "$DIR${SONG}")
 			PLAYINGSONG="/usr/local/bin/song.txt"
 			echo "Title: $TITLE" > $PLAYINGSONG
 			echo "Artist: $ARTIST" >> $PLAYINGSONG
 			echo "Genre: $GENRE" >> $PLAYINGSONG
 			echo "Date: $DATE" >> $PLAYINGSONG
+			echo "DirSong: $DIR$SONG" >> $PLAYINGSONG
 			if [[ "$ISSONGCHANGED" == $TRUE ]]; then
-				( mpg123 -q $DIR$SONG ) &
+				( mpg321 -q -o alsa "$DIR${SONG}" ) &
 			fi
 			PAUSE=$FALSE
 		fi
@@ -76,7 +78,7 @@ listening()
 	  	LASTLINE=$(wc -l < $CURRENTPLAYLIST)
 	  	case "$ANS" in
 	  		"⏸️")
-        			processNum=$(ps -ef | grep mpg123 | head -n 1 | tr -s ' ' | cut -d ' ' -f2)
+        			processNum=$(ps -ef | grep mpg321 | head -n 1 | tr -s ' ' | cut -d ' ' -f2)
         			if [[ "$PAUSE" == $TRUE ]]; then
         				kill -CONT $processNum
         				PAUSE=$FALSE
@@ -90,7 +92,7 @@ listening()
 	  	ISSONGCHANGED=$TRUE
 	  	case "$ANS" in
 	  		"⏭") 
-	  			killall mpg123
+	  			killall mpg321
 	  			if [[ "$LINE" = "$LASTLINE" ]]; then
 					LINE=1
 				else 
@@ -99,7 +101,7 @@ listening()
 	  			killPausedProcess
 	  			continue;;
 	  		"⏮") 
-	  			killall mpg123
+	  			killall mpg321
 	  			if [[ "$LINE" = "1" ]]; then 
 					LINE="$LASTLINE"
 				else
@@ -108,7 +110,7 @@ listening()
 	        		killPausedProcess
 	        		continue;;
         		"⏹️") 
-        			killall mpg123 
+        			killall mpg321
         			killPausedProcess
         			continue;;
         	esac
@@ -117,7 +119,7 @@ listening()
   		fi
   		LINE=$((LINE+1)) 
   	done
-  	killall mpg123
+  	killall mpg321
   	rm $CURRENTPLAYLIST
   	rm $PLAYINGSONG
 }
@@ -133,7 +135,7 @@ random()
 {
         COUNT=0
 	CURRENTPLAYLIST="/usr/local/bin/currentPlaylist.txt"
-	find $DIR | grep "\.mp3" | sed "s#.*/##" | sort -R > $CURRENTPLAYLIST 
+	sudo find $DIR | grep "\.mp3" | sed "s#.*/##" | sort -R > $CURRENTPLAYLIST 
 	listening
 }
 
@@ -184,22 +186,23 @@ rename()
 	rm $RENAMEDSONGS
 }
 
-DIR="/home/"$(id -un)"/"
+#DIR="/home/"$(id -un)"/"
+DIR="/home/ana/"
 FILESCRIPTNAME=$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")
 ME=$(stat -c '%U' $FILESCRIPTNAME)
 EMAIL=""
 LASTMODIFIED=$( date -r $FILESCRIPTNAME )
 HEADERFILE="/usr/local/bin/header.txt"
-echo "# Author           : $ME ( $EMAIL )" > $HEADERFILE
-echo "# Created On       : " >> $HEADERFILE
-echo "# Last Modified By : $ME ( $EMAIL )" >> $HEADERFILE
-echo "# Last Modified On : $LASTMODIFIED" >> $HEADERFILE
-echo "# Version          : 1" >> $HEADERFILE
-echo "#" >> $HEADERFILE
-echo "# Description      : Skrypt pozwala na sluchanie muzyki. Sa roznego rodzaju opcje: mozna posluchac wybranej przez siebie muzyki, mozna randomowo przydzielic playback, rowniez mozna posluchac ostatnio dodanej muzyki. Istnieje tez mozliwosc zmiany nazw piosenek w sposob prawidlowy." >> $HEADERFILE
-echo "#" >> $HEADERFILE
-echo "# Licensed under GPL (see /usr/share/common-licenses/GPL for more details">> $HEADERFILE
-echo "# or contact # the Free Software Foundation for a copy)" >> $HEADERFILE
+#echo "# Author           : $ME ( $EMAIL )" > $HEADERFILE
+#echo "# Created On       : " >> $HEADERFILE
+#echo "# Last Modified By : $ME ( $EMAIL )" >> $HEADERFILE
+#echo "# Last Modified On : $LASTMODIFIED" >> $HEADERFILE
+#echo "# Version          : 1" >> $HEADERFILE
+#echo "#" >> $HEADERFILE
+#echo "# Description      : Skrypt pozwala na sluchanie muzyki. Sa roznego rodzaju opcje: mozna posluchac wybranej przez siebie muzyki, mozna randomowo przydzielic playback, rowniez mozna posluchac ostatnio dodanej muzyki. Istnieje tez mozliwosc zmiany nazw piosenek w sposob prawidlowy." >> $HEADERFILE
+#echo "#" >> $HEADERFILE
+#echo "# Licensed under GPL (see /usr/share/common-licenses/GPL for more details">> $HEADERFILE
+#echo "# or contact # the Free Software Foundation for a copy)" >> $HEADERFILE
 
 while getopts hv OPT; do
 	case $OPT in
@@ -209,8 +212,8 @@ while getopts hv OPT; do
 	esac
 done
 
-cat $HEADERFILE | zenity --title "_____" --text-info --height 350 --width 550
-rm $HEADERFILE
+#cat $HEADERFILE | zenity --title "_____" --text-info --height 350 --width 550
+#rm $HEADERFILE
 MUSICFILE=$(zenity --entry --title "Path request" --text "Please enter the path to the file with music")
 DIR="${DIR}$MUSICFILE"
 
